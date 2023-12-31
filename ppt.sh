@@ -59,7 +59,7 @@ case "$confirm" in
 		  sudo apt install "./$FNAME"
 		  break
 	      else
-		  tar -zxf "/tmp/$FNAME" -C "$HOME/.local/bin/"
+		  tar -xf "/tmp/$FNAME" -C "$HOME/.local/bin/"
 		  break
 	      fi
 	      # Unpack executable to ~/.local/bin/
