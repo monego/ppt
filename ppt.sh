@@ -17,14 +17,26 @@ read -p "The latest version is $latest_version and it was released on $formatted
 
 assets=($(echo "$response" | jq '.assets[].name'))
 
+# Remove quotes from array elements
+assets=($(sed 's/"//g' <<< "${assets[*]}"))
+
+# Remove sha256 files from the array
+releases=()
+for element in "${assets[@]}"; do
+    if [[ "${element}" != *"sha256" ]]; then
+	# echo "${element}"
+	releases+=("${element}")
+    fi
+done
+
 pushd /tmp
 
 case "$confirm" in
   y|Y )
       PS3="Select a release: "
-      select rel_choice in "${assets[@]}"; do
-	  if [[ " ${assets[@]} " =~ " ${rel_choice} " ]]; then
-    	      FNAME=${rel_choice:1:-1} # Workaround to remove strings from URL
+      select rel_choice in "${releases[@]}"; do
+	  if [[ " ${releases[@]} " =~ " ${rel_choice} " ]]; then
+    	      FNAME=${rel_choice}
 	      # Download latest release
 
 	      url="https://github.com/$OWNER/$REPO/releases/download/$latest_version/$FNAME"
