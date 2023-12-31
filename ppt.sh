@@ -51,9 +51,18 @@ case "$confirm" in
 	      else
 		  cat "$FNAME.sha256" | sha256sum --check
 	      fi
+
+	      extension="${FNAME##*.}"
+
+	      if [[ "${extension}" == "deb" ]]; then
+		  echo "Installing a .deb file requires root privileges."
+		  sudo apt install "./$FNAME"
+		  break
+	      else
+		  tar -zxf "/tmp/$FNAME" -C "$HOME/.local/bin/"
+		  break
+	      fi
 	      # Unpack executable to ~/.local/bin/
-	      tar -zxf "/tmp/$FNAME" -C "$HOME/.local/bin/"
-	      break
 	  else
 	      echo "Invalid selection. Exiting..."
 	      exit 1
