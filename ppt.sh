@@ -32,49 +32,49 @@ done
 pushd /tmp
 
 case "$confirm" in
-  y|Y )
-      PS3="Select a release: "
-      select rel_choice in "${releases[@]}"; do
-	  if [[ " ${releases[@]} " =~ " ${rel_choice} " ]]; then
-    	      FNAME=${rel_choice}
-	      # Download latest release
+    y|Y )
+	PS3="Select a release: "
+	select rel_choice in "${releases[@]}"; do
+	    if [[ " ${releases[@]} " =~ " ${rel_choice} " ]]; then
+    		FNAME=${rel_choice}
+		# Download latest release
 
-	      url="https://github.com/$OWNER/$REPO/releases/download/$latest_version/$FNAME"
-	      wget --quiet --show-progress "$url" -O "$FNAME"
+		url="https://github.com/$OWNER/$REPO/releases/download/$latest_version/$FNAME"
+		wget --quiet --show-progress "$url" -O "$FNAME"
 
-	      wget --quiet --show-progress "$url.sha256" -O "$FNAME.sha256"
+		wget --quiet --show-progress "$url.sha256" -O "$FNAME.sha256"
 
-	      statuscode=$(echo $?)
+		statuscode=$(echo $?)
 
-	      if [[ "$statuscode" -eq "404" ]]; then
-		  echo "Checksum not found. Skipping verification."
-	      else
-		  cat "$FNAME.sha256" | sha256sum --check
-	      fi
+		if [[ "$statuscode" -eq "404" ]]; then
+                    echo "Checksum not found. Skipping verification."
+		else
+                    cat "$FNAME.sha256" | sha256sum --check
+		fi
 
-	      extension="${FNAME##*.}"
+		extension="${FNAME##*.}"
 
-	      if [[ "${extension}" == "deb" ]]; then
-		  echo "Installing a .deb file requires root privileges."
-		  sudo apt install "./$FNAME"
-		  break
-	      else
-		  tar -xf "/tmp/$FNAME" -C "$HOME/.local/bin/"
-		  break
-	      fi
-	      # Unpack executable to ~/.local/bin/
-	  else
-	      echo "Invalid selection. Exiting..."
-	      exit 1
-	  fi
-      done
-      ;;
-  n|N )
-      echo "Operation canceled. Exiting..."
-      ;;
-  * )
-      echo "Invalid choice. Exiting..."
-      ;;
+		if [[ "${extension}" == "deb" ]]; then
+		    echo "Installing a .deb file requires root privileges."
+		    sudo apt install "./$FNAME"
+                    break
+		else
+                    # Unpack executable to ~/.local/bin/
+		    tar -xf "/tmp/$FNAME" -C "$HOME/.local/bin/"
+		    break
+		fi
+	    else
+		echo "Invalid selection. Exiting..."
+		exit 1
+	    fi
+	done
+	;;
+    n|N )
+	echo "Operation canceled. Exiting..."
+	;;
+    * )
+	echo "Invalid choice. Exiting..."
+	;;
 esac
 
 popd
