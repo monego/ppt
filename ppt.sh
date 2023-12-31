@@ -17,6 +17,8 @@ read -p "The latest version is $latest_version and it was released on $formatted
 
 assets=($(echo "$response" | jq '.assets[].name'))
 
+pushd /tmp
+
 case "$confirm" in
   y|Y )
       PS3="Select a release: "
@@ -24,8 +26,19 @@ case "$confirm" in
 	  if [[ " ${assets[@]} " =~ " ${rel_choice} " ]]; then
     	      FNAME=${rel_choice:1:-1} # Workaround to remove strings from URL
 	      # Download latest release
+
 	      url="https://github.com/$OWNER/$REPO/releases/download/$latest_version/$FNAME"
-	      wget "$url" -O "/tmp/$FNAME"
+	      wget --quiet --show-progress "$url" -O "$FNAME"
+
+	      wget --quiet --show-progress "$url.sha256" -O "$FNAME.sha256"
+
+	      statuscode=$(echo $?)
+
+	      if [[ "$statuscode" -eq "404" ]]; then
+		  echo "Checksum not found. Skipping verification."
+	      else
+		  cat "$FNAME.sha256" | sha256sum --check
+	      fi
 	      # Unpack executable to ~/.local/bin/
 	      tar -zxf "/tmp/$FNAME" -C "$HOME/.local/bin/"
 	      break
@@ -42,3 +55,5 @@ case "$confirm" in
       echo "Invalid choice. Exiting..."
       ;;
 esac
+
+popd

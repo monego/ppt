@@ -16,7 +16,6 @@ e.g. `$ ppt astral-sh ruff` will install or update [ruff](https://github.com/ast
 
 ## TODO
 
-- Verify sha256sum when available
 - Write a short help section
 - POSIX compatibility
 - Customize unpack path
