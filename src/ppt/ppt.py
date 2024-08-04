@@ -49,7 +49,7 @@ def install(url: str, install_path: str):
 
     # <--- Save to JSON file --->
 
-    save_to_json(filename, version, repository[0])
+    save_to_json(filename, version, repository[0], url)
 
 
 @click.command()
@@ -131,7 +131,7 @@ def json_file_exists(path):
         return False
 
 
-def save_to_json(name, version, url):
+def save_to_json(name, version, url, fname):
     """Save executable information to the JSON file."""
     path = Path('~/.local/share/ppt/ppt.json').expanduser()
 
@@ -148,9 +148,11 @@ def save_to_json(name, version, url):
         logging.warning(f"Package '{name}' already exists. Skipping.")
     else:
         with open(path, 'w') as f:
+            print(fname)
             packages[name] = {
                 'version': version,
                 'url': url,
+                'file': fname,
             }
             json.dump(packages, f, indent=4)
 
