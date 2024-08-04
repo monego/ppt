@@ -1,5 +1,6 @@
 from pathlib import Path
 import click
+import json
 import logging
 import os
 import requests
@@ -30,6 +31,8 @@ def install(url: str, install_path: str):
     url_split = url.split('/')
     archive_filename = url_split[-1]
     filename = url_split[4]
+    version = url_split[7]
+    repository = url.split('releases')
 
     logging.info(f"Dowloading {filename}...")
 
@@ -43,6 +46,10 @@ def install(url: str, install_path: str):
     logging.info(f"Extracting and copying f{filename}")
     scan_archive(archive_path, filename)
     logging.info("Extraction and copy done!")
+
+    # <--- Save to JSON file --->
+
+    save_to_json(filename, version, repository[0])
 
 
 @click.command()
@@ -62,7 +69,20 @@ def update(program):
 @click.command()
 def list():
     """List all 'installed' executables."""
-    pass
+    path = Path('~/.local/share/ppt/ppt.json').expanduser()
+    if not path.exists():
+        sys.stdout.write('')
+    else:
+        with path.open('r') as f:
+            try:
+                packages = json.load(f)
+            except json.JSONDecodeError:
+                logging.error('Error decoding ppt.json')
+                return
+            for package in packages:
+                name = package
+                version = packages[package].get('version')
+                sys.stdout.write(f'Name: {name} Version: {version}')
 
 
 def download_archive(response, filename: str):
@@ -81,6 +101,38 @@ def download_archive(response, filename: str):
             sys.stdout.flush()
 
     return archive_path
+
+
+def json_file_exists(path):
+    """Check whether ppt.json exists."""
+    if path.exists() and path.stat().st_size > 0:
+        return True
+    else:
+        return False
+
+
+def save_to_json(name, version, url):
+    """Save executable information to the JSON file."""
+    path = Path('~/.local/share/ppt/ppt.json').expanduser()
+
+    if json_file_exists(path):
+        with open(path, 'r') as f:
+            packages = json.load(f)
+    else:
+        path = Path(path)
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.touch(exist_ok=True)
+        packages = {}
+
+    if name in packages:
+        logging.warning(f"Package '{name}' already exists. Skipping.")
+    else:
+        with open(path, 'w') as f:
+            packages[name] = {
+                'version': version,
+                'url': url,
+            }
+            json.dump(packages, f, indent=4)
 
 
 def is_executable(path: str):
