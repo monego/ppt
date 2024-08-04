@@ -56,7 +56,27 @@ def install(url: str, install_path: str):
 @click.argument('program')
 def uninstall(program):
     """Delete the executable from the location."""
-    click.echo(f'Deleted {program}')
+    path = Path('~/.local/share/ppt/ppt.json').expanduser()
+
+    if json_file_exists(path):
+        with path.open('r') as f:
+            packages = json.load(f)
+            if program in packages:
+                del packages[program]
+                program_path = Path(f'~/.local/bin/{program}').expanduser()
+                try:
+                    program_path.unlink()
+                except FileNotFoundError:
+                    logging.warning(
+                        'Could not find the executable. Not deleting anything.'
+                    )
+                with open(path, 'w') as file:
+                    json.dump(packages, file, indent=4)
+                click.echo(f'Uninstalled {program}.')
+            else:
+                logging.error(f'Could not find {program} installed.')
+    else:
+        logging.error('Could not find ppt.json')
 
 
 @click.command()
