@@ -20,7 +20,7 @@ def ppt():
 
 @click.command()
 @click.argument('url')
-@click.option('--install-path', default=os.path.expanduser('~/.local/bin/'),
+@click.option('--install-path', default=Path('~/.local/bin/').expanduser(),
               help='Installation path')
 def install(url: str, install_path: str):
     """Install a program (i.e. copy it to a directory in PATH)."""
@@ -150,12 +150,12 @@ def scan_archive(path: str, bname: str):
                 for member in tar.getmembers():
                     if member.isfile():
                         tar.extract(member, path='/tmp/tmp')
-                        file_path = os.path.join('/tmp/tmp', member.name)
+                        file_path = Path('/tmp/tmp') / member.name
 
                         if is_executable(file_path):
                             shutil.copy2(
                                 file_path,
-                                f'{os.getenv("HOME")}/.local/bin/{bname}'
+                                Path(f'~/.local/bin/{bname}').expanduser()
                             )
 
 
