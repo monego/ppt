@@ -14,4 +14,4 @@ After that, you can update the program by the repository name:
 
 ## Dependencies
 
-`ppt` depends on Click, Requests and Rich.
+`ppt` depends on Click, Packaging, Requests and Rich.

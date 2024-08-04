@@ -1,3 +1,4 @@
+from packaging import version
 from pathlib import Path
 import click
 import json
@@ -30,6 +31,7 @@ def install(url: str, install_path: str):
 
     url_split = url.split('/')
     archive_filename = url_split[-1]
+    owner = url_split[3]
     filename = url_split[4]
     version = url_split[7]
     repository = url.split('releases')
@@ -49,7 +51,7 @@ def install(url: str, install_path: str):
 
     # <--- Save to JSON file --->
 
-    save_to_json(filename, version, repository[0], url)
+    save_to_json(filename, owner, version, repository[0], archive_filename, is_update=False)
 
 
 @click.command()
@@ -72,6 +74,7 @@ def uninstall(program):
                     )
                 with open(path, 'w') as file:
                     json.dump(packages, file, indent=4)
+                sys.stdout.write('\n')
                 click.echo(f'Uninstalled {program}.')
             else:
                 logging.error(f'Could not find {program} installed.')
@@ -83,7 +86,42 @@ def uninstall(program):
 @click.argument('program')
 def update(program):
     """Update a given executable."""
-    click.echo('Updated program')
+    path = Path('~/.local/share/ppt/ppt.json').expanduser()
+
+    if json_file_exists(path):
+        with path.open('r') as f:
+            packages = json.load(f)
+        if program in packages:
+            try:
+                owner = packages[program]['owner']
+                repo = packages[program]['repo']
+                latest = fetch_latest_release(owner, repo)
+                latest_version = version.parse(latest)
+                current_version = version.parse(
+                    packages[program]['version']
+                )
+                if latest_version > current_version:
+                    logging.info(
+                        f'Updating {program} from {current_version}'
+                        f' to {latest_version}'
+                    )
+                fname = packages[program]['filename']
+                url = f'https://github.com/{owner}/{repo}/releases/download/{latest_version}/{fname}'
+                response = requests.get(url, stream=True)
+                archive_path = download_archive(response, fname)
+                scan_archive(archive_path, repo)
+                packages[program]['version'] = str(latest_version)
+                with path.open('w') as f:
+                    json.dump(packages, f, indent=4)
+            except FileNotFoundError:
+                logging.warning(
+                    'Could not find the executable. Not deleting anything.'
+                )
+        else:
+            logging.error(f'Could not find {program} installed.')
+    else:
+        logging.error('Could not find ppt.json')
+    click.echo(f'Updated {program}')
 
 
 @click.command()
@@ -123,6 +161,15 @@ def download_archive(response, filename: str):
     return archive_path
 
 
+def fetch_latest_release(owner, repo):
+    """Check for the latest release on GitHub."""
+    url = f"https://api.github.com/repos/{owner}/{repo}/releases/latest"
+    response = requests.get(url)
+    response.raise_for_status()
+    release_data = response.json()
+    return release_data.get('tag_name')
+
+
 def json_file_exists(path):
     """Check whether ppt.json exists."""
     if path.exists() and path.stat().st_size > 0:
@@ -131,7 +178,7 @@ def json_file_exists(path):
         return False
 
 
-def save_to_json(name, version, url, fname):
+def save_to_json(name, owner, version, url, fname, is_update=True):
     """Save executable information to the JSON file."""
     path = Path('~/.local/share/ppt/ppt.json').expanduser()
 
@@ -144,15 +191,17 @@ def save_to_json(name, version, url, fname):
         path.touch(exist_ok=True)
         packages = {}
 
-    if name in packages:
+    if name in packages and not is_update:
         logging.warning(f"Package '{name}' already exists. Skipping.")
     else:
         with open(path, 'w') as f:
             print(fname)
             packages[name] = {
+                'owner': owner,
+                'repo': name,
                 'version': version,
                 'url': url,
-                'file': fname,
+                'filename': fname,
             }
             json.dump(packages, f, indent=4)
 
