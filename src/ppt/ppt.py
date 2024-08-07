@@ -105,14 +105,18 @@ def update(program):
                         f'Updating {program} from {current_version}'
                         f' to {latest_version}'
                     )
-                fname = packages[program]['filename']
-                url = f'https://github.com/{owner}/{repo}/releases/download/{latest_version}/{fname}'
-                response = requests.get(url, stream=True)
-                archive_path = download_archive(response, fname)
-                scan_archive(archive_path, repo)
-                packages[program]['version'] = str(latest_version)
-                with path.open('w') as f:
-                    json.dump(packages, f, indent=4)
+                    fname = packages[program]['filename']
+                    url = f'https://github.com/{owner}/{repo}/releases/download/{latest_version}/{fname}'
+                    response = requests.get(url, stream=True)
+                    archive_path = download_archive(response, fname)
+                    scan_archive(archive_path, repo)
+                    packages[program]['version'] = str(latest_version)
+                    with path.open('w') as f:
+                        json.dump(packages, f, indent=4)
+                    click.echo(f'Updated {program}')
+                else:
+                    click.echo(f'Latest version of {program} is'
+                               f' {latest_version}, nothing to update.')
             except FileNotFoundError:
                 logging.warning(
                     'Could not find the executable. Not deleting anything.'
@@ -121,7 +125,6 @@ def update(program):
             logging.error(f'Could not find {program} installed.')
     else:
         logging.error('Could not find ppt.json')
-    click.echo(f'Updated {program}')
 
 
 @click.command()
