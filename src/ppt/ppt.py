@@ -1,5 +1,9 @@
 from packaging import version
 from pathlib import Path
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.progress import Progress
+from rich.table import Table
 import click
 import json
 import logging
@@ -10,7 +14,8 @@ import sys
 import tarfile
 
 logging.basicConfig(level=logging.INFO,
-                    format='%(asctime)s - %(levelname)s - %(message)s')
+                    format='%(asctime)s - %(levelname)s - %(message)s',
+                    handlers=[RichHandler()])
 
 
 @click.group()
@@ -40,7 +45,6 @@ def install(url: str, install_path: str):
 
     archive_path = download_archive(response, archive_filename)
 
-    sys.stdout.write('\n')
     logging.info("Download complete!")
 
     # <--- Copy --->
@@ -140,10 +144,18 @@ def list():
             except json.JSONDecodeError:
                 logging.error('Error decoding ppt.json')
                 return
+
+            table = Table(title="Program list")
+            table.add_column("Program", style='magenta')
+            table.add_column("Version", style='green')
+
             for package in packages:
                 name = package
                 version = packages[package].get('version')
-                sys.stdout.write(f'Name: {name} Version: {version}')
+                table.add_row(name, version)
+
+            console = Console()
+            console.print(table)
 
 
 def download_archive(response, filename: str):
@@ -151,15 +163,11 @@ def download_archive(response, filename: str):
     total_size = int(response.headers.get('content-length', 0))
     archive_path = '/tmp/' + filename
 
-    downloaded_size = 0
-
-    with open(archive_path, 'wb') as f:
+    with open(archive_path, 'wb') as f, Progress() as progress:
+        task = progress.add_task("[cyan]Downloading...", total=total_size)
         for chunk in response.iter_content(chunk_size=8192):
             f.write(chunk)
-            downloaded_size += len(chunk)
-            percent_complete = (downloaded_size / total_size) * 100
-            sys.stdout.write(f'\rDownload progress: {percent_complete:.2f}%')
-            sys.stdout.flush()
+            progress.update(task, advance=len(chunk))
 
     return archive_path
 
@@ -198,7 +206,6 @@ def save_to_json(name, owner, version, url, fname, is_update=True):
         logging.warning(f"Package '{name}' already exists. Skipping.")
     else:
         with open(path, 'w') as f:
-            print(fname)
             packages[name] = {
                 'owner': owner,
                 'repo': name,
