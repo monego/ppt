@@ -49,7 +49,7 @@ def install(url: str, install_path: str):
 
     # <--- Copy --->
 
-    logging.info(f"Extracting and copying f{filename}")
+    logging.info(f"Extracting and copying {filename}")
     scan_archive(archive_path, filename)
     logging.info("Extraction and copy done!")
 
