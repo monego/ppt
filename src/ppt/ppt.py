@@ -110,8 +110,12 @@ def update(program):
                         f' to {latest_version}'
                     )
                     fname = packages[program]['filename']
-                    url = f'https://github.com/{owner}/{repo}/releases/download/{latest_version}/{fname}'
+                    url = f'https://github.com/{owner}/{repo}/releases/download/{latest}/{fname}'
+                    url = url.replace(str(current_version), str(latest_version))
                     response = requests.get(url, stream=True)
+                    if response.status_code == 404:
+                        logging.error('Could not find the latest tarball.')
+                        return
                     archive_path = download_archive(response, fname)
                     scan_archive(archive_path, repo)
                     packages[program]['version'] = str(latest_version)
